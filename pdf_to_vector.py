@@ -11,6 +11,14 @@ def convert_pdf_to_vector(input_pdf, output_file, format_name="GeoJSON"):
         print(f"Error: Input file '{input_pdf}' does not exist.")
         sys.exit(1)
 
+    # Performance Optimization: Skip conversion if output file is newer than input file
+    if os.path.exists(output_file):
+        input_mtime = os.path.getmtime(input_pdf)
+        output_mtime = os.path.getmtime(output_file)
+        if output_mtime >= input_mtime:
+            print(f"Skipping conversion: Output file '{output_file}' is up-to-date.")
+            return
+
     print(f"Converting '{input_pdf}' to '{output_file}' (Format: {format_name})...")
 
     # ogr2ogr -f "GeoJSON" output.geojson input.pdf
