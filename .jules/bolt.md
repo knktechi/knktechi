@@ -1,0 +1,3 @@
+## 2024-10-04 - Native GDAL Bindings
+**Learning:** Spawning subprocesses for GDAL commands (like `ogr2ogr`) introduces significant process start-up overhead in Python compared to calling the native C++ GDAL bindings (`osgeo.gdal`) directly.
+**Action:** Always prioritize using native bindings like `gdal.VectorTranslate` over `subprocess.run` to minimize overhead and directly interact with GDAL's optimized implementations. Ensure that output datasets are explicitly closed (`out_ds = None`) to correctly flush data.

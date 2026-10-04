@@ -2,6 +2,13 @@ import argparse
 import subprocess
 import sys
 import os
+import time
+
+try:
+    from osgeo import gdal
+    GDAL_AVAILABLE = True
+except ImportError:
+    GDAL_AVAILABLE = False
 
 def convert_pdf_to_vector(input_pdf, output_file, format_name="GeoJSON"):
     """
@@ -13,6 +20,31 @@ def convert_pdf_to_vector(input_pdf, output_file, format_name="GeoJSON"):
 
     print(f"Converting '{input_pdf}' to '{output_file}' (Format: {format_name})...")
 
+    if GDAL_AVAILABLE:
+        print("Using native GDAL Python bindings for conversion...")
+        try:
+            gdal.UseExceptions()
+            options = gdal.VectorTranslateOptions(format=format_name)
+
+            # Start timer for performance measurement
+            start_time = time.time()
+
+            # Perform conversion using VectorTranslate
+            out_ds = gdal.VectorTranslate(output_file, input_pdf, options=options)
+
+            # Important: Flush and close the output dataset to ensure data is written
+            out_ds = None
+
+            end_time = time.time()
+
+            print(f"Conversion successful! Took {end_time - start_time:.2f} seconds.")
+            return
+        except Exception as e:
+            print(f"Native GDAL conversion failed: {e}")
+            print("Falling back to subprocess ogr2ogr...")
+            # Fall through to subprocess
+
+    print("Using subprocess ogr2ogr for conversion...")
     # ogr2ogr -f "GeoJSON" output.geojson input.pdf
     cmd = [
         "ogr2ogr",
@@ -22,9 +54,11 @@ def convert_pdf_to_vector(input_pdf, output_file, format_name="GeoJSON"):
     ]
 
     try:
+        start_time = time.time()
         # Run the ogr2ogr command
         result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-        print("Conversion successful!")
+        end_time = time.time()
+        print(f"Conversion successful! Took {end_time - start_time:.2f} seconds.")
         if result.stdout:
             print(result.stdout)
     except subprocess.CalledProcessError as e:
