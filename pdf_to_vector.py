@@ -5,13 +5,35 @@ import os
 
 def convert_pdf_to_vector(input_pdf, output_file, format_name="GeoJSON"):
     """
-    Converts a Geospatial PDF to a vector format using GDAL's ogr2ogr.
+    Converts a Geospatial PDF to a vector format using GDAL's ogr2ogr or Python bindings.
     """
     if not os.path.exists(input_pdf):
         print(f"Error: Input file '{input_pdf}' does not exist.")
         sys.exit(1)
 
     print(f"Converting '{input_pdf}' to '{output_file}' (Format: {format_name})...")
+
+    # Bolt Optimization: Try to use native GDAL Python bindings first to avoid subprocess overhead
+    try:
+        from osgeo import gdal
+
+        # Use gdal.VectorTranslate instead of spawning ogr2ogr subprocess
+        options = gdal.VectorTranslateOptions(format=format_name)
+        out_ds = gdal.VectorTranslate(output_file, input_pdf, options=options)
+
+        if out_ds is None:
+            print("Error during conversion with Python bindings.")
+            return
+
+        # Explicitly flush and close the output dataset to ensure data is completely written to disk
+        out_ds = None
+
+        print("Conversion successful! (Used native GDAL bindings)")
+        return
+
+    except ImportError:
+        # Fall back to subprocess if Python bindings are unavailable
+        pass
 
     # ogr2ogr -f "GeoJSON" output.geojson input.pdf
     cmd = [
@@ -24,7 +46,7 @@ def convert_pdf_to_vector(input_pdf, output_file, format_name="GeoJSON"):
     try:
         # Run the ogr2ogr command
         result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-        print("Conversion successful!")
+        print("Conversion successful! (Used subprocess fallback)")
         if result.stdout:
             print(result.stdout)
     except subprocess.CalledProcessError as e:
