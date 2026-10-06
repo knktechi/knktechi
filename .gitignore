@@ -1,0 +1,11 @@
+
+# ignore venv and python files
+test_env/
+__pycache__/
+*.pyc
+dummy.*
+out_system.geojson
+out_venv.geojson
+test_gdal.py
+create_dummy_pdf.py
+test_gdal_vector.py
