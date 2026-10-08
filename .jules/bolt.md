@@ -1,0 +1,3 @@
+## 2026-10-08 - Avoiding Subprocess Overhead in Python GDAL Scripts
+**Learning:** Using `subprocess` to call command-line tools (like `ogr2ogr`) introduces significant overhead from spawning shells, especially when dealing with smaller files or frequent calls in a loop. Python bindings (`osgeo.gdal`) offer a much faster, in-process alternative with direct C-level execution.
+**Action:** Always prefer native `osgeo` Python bindings (e.g., `gdal.VectorTranslate`) over spawning `ogr2ogr` or `gdal_translate` via `subprocess`. Ensure `out_ds = None` is used to properly flush C++ memory buffers to disk.
