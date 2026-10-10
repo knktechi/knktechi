@@ -3,6 +3,7 @@ import subprocess
 import sys
 import os
 
+
 def convert_pdf_to_vector(input_pdf, output_file, format_name="GeoJSON"):
     """
     Converts a Geospatial PDF to a vector format using GDAL's ogr2ogr.
@@ -12,6 +13,31 @@ def convert_pdf_to_vector(input_pdf, output_file, format_name="GeoJSON"):
         sys.exit(1)
 
     print(f"Converting '{input_pdf}' to '{output_file}' (Format: {format_name})...")
+
+    try:
+        # Performance optimization: Use native GDAL Python bindings to avoid subprocess overhead
+        from osgeo import gdal
+        gdal.UseExceptions()
+
+        # Open the input dataset
+        ds = gdal.OpenEx(input_pdf)
+        if ds is None:
+            raise RuntimeError(f"Failed to open '{input_pdf}' with GDAL.")
+
+        # Translate to vector
+        options = gdal.VectorTranslateOptions(format=format_name)
+        out_ds = gdal.VectorTranslate(output_file, ds, options=options)
+
+        if out_ds is None:
+            raise RuntimeError(f"Vector translation failed for '{input_pdf}'.")
+
+        # Flush and close properly
+        out_ds = None
+        ds = None
+        print("Conversion successful using native GDAL bindings!")
+        return
+    except Exception as e:
+        print(f"Native GDAL bindings failed or not found ({e}). Falling back to subprocess ogr2ogr.")
 
     # ogr2ogr -f "GeoJSON" output.geojson input.pdf
     cmd = [
@@ -36,6 +62,7 @@ def convert_pdf_to_vector(input_pdf, output_file, format_name="GeoJSON"):
     except FileNotFoundError:
         print("Error: 'ogr2ogr' command not found. Please ensure GDAL is installed and in your system PATH.")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Convert CAD/Geospatial PDF to a GIS Vector format using GDAL.")
