@@ -1,0 +1,3 @@
+## 2026-10-10 - Native GDAL Python bindings vs Subprocess overhead
+**Learning:** Native GDAL bindings (`osgeo.gdal`) avoid the process spawning overhead of `subprocess.run` to `ogr2ogr`. This is a significant optimization when running operations frequently. We also learned that `gdal.UseExceptions()` and proper dataset flushing (e.g. `out_ds = None`) are mandatory to ensure correctness when utilizing these bindings.
+**Action:** When working with GDAL operations in Python scripts, always prefer the native Python bindings with proper exception handling and object lifecycle management. Keep CLI subprocess equivalents strictly as fallbacks for missing environment dependencies.
