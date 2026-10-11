@@ -3,9 +3,18 @@ import subprocess
 import sys
 import os
 
+try:
+    from osgeo import gdal
+    gdal.UseExceptions()
+    HAS_GDAL = True
+except ImportError:
+    HAS_GDAL = False
+
+
 def convert_pdf_to_vector(input_pdf, output_file, format_name="GeoJSON"):
     """
-    Converts a Geospatial PDF to a vector format using GDAL's ogr2ogr.
+    Converts a Geospatial PDF to a vector format.
+    Uses GDAL Python bindings for performance, falls back to ogr2ogr subprocess.
     """
     if not os.path.exists(input_pdf):
         print(f"Error: Input file '{input_pdf}' does not exist.")
@@ -13,7 +22,31 @@ def convert_pdf_to_vector(input_pdf, output_file, format_name="GeoJSON"):
 
     print(f"Converting '{input_pdf}' to '{output_file}' (Format: {format_name})...")
 
-    # ogr2ogr -f "GeoJSON" output.geojson input.pdf
+    if HAS_GDAL:
+        try:
+            print("Using GDAL Python bindings for optimized performance...")
+            # Open the input dataset
+            in_ds = gdal.OpenEx(input_pdf)
+            if in_ds is None:
+                raise Exception("Failed to open input file with GDAL.")
+
+            # Perform the vector translation
+            options = gdal.VectorTranslateOptions(format=format_name)
+            out_ds = gdal.VectorTranslate(output_file, in_ds, options=options)
+
+            if out_ds is None:
+                raise Exception("GDAL VectorTranslate returned None.")
+
+            # Flush and close the dataset to ensure data is written to disk
+            out_ds = None
+            in_ds = None
+            print("Conversion successful!")
+            return
+        except Exception as e:
+            print(f"GDAL Python API failed: {e}")
+            print("Falling back to ogr2ogr subprocess...")
+
+    # Fallback to subprocess
     cmd = [
         "ogr2ogr",
         "-f", format_name,
@@ -36,6 +69,7 @@ def convert_pdf_to_vector(input_pdf, output_file, format_name="GeoJSON"):
     except FileNotFoundError:
         print("Error: 'ogr2ogr' command not found. Please ensure GDAL is installed and in your system PATH.")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Convert CAD/Geospatial PDF to a GIS Vector format using GDAL.")
