@@ -1,0 +1,3 @@
+## 2024-05-24 - Optimizing GDAL Conversion with Python Bindings
+**Learning:** In this architecture, replacing subprocess calls to `ogr2ogr` with native `osgeo.gdal.VectorTranslate` bindings removes process start-up overhead and improves performance. However, `gdal.UseExceptions()` must be called to ensure errors are correctly surfaced in Python, and the returned dataset must be explicitly closed (`out_ds = None`) to guarantee data is completely flushed to disk.
+**Action:** Always prefer native GDAL Python bindings over subprocess calls for `ogr2ogr`/`gdal_translate` to avoid subprocess overhead, but remember to explicitly enable exceptions and flush the dataset output.
